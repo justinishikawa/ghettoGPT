@@ -132,6 +132,15 @@
         </div>
 
         <div class="input-container">
+            <select id="modelSelect">
+                <option value="openrouter/auto">OpenRouter Auto</option>
+                <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="openai/gpt-4">GPT-4</option>
+                <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+                <option value="anthropic/claude-3-sonnet">Claude 3 Sonnet</option>
+                <option value="google/gemini-pro">Gemini Pro</option>
+                <!-- More models can be added here later -->
+            </select>
             <textarea id="userInput" placeholder="Type your message here..." onkeydown="if(event.keyCode === 13 && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
             <button onclick="sendMessage()">Send</button>
         </div>
@@ -150,6 +159,8 @@
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const message = input.value.trim();
+            const modelSelect = document.getElementById('modelSelect');
+            const selectedModel = modelSelect.value;
             
             if (!message) return;
             
@@ -162,7 +173,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify({ message, model: selectedModel })
                 });
 
                 const data = await response.json();

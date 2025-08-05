@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from litellm import completion
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
@@ -15,8 +16,18 @@ LITELLM_API_BASE = os.getenv('LITELLM_API_BASE', 'http://localhost:8000')  # Def
 LITELLM_MODEL = os.getenv('LITELLM_MODEL', 'gpt-3.5-turbo')  # Default model
 LITELLM_API_KEY = os.getenv('LITELLM_API_KEY', '')  # API key if required
 
+# OpenRouter configuration
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')  # API key for OpenRouter
+OPENROUTER_MODEL = os.getenv('OPENROUTER_MODEL', 'openrouter/auto')  # Default model
+
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Initialize OpenAI client for OpenRouter
+openrouter_client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
 
 @app.route('/')
 def home():
@@ -27,18 +38,28 @@ def chat():
     try:
         data = request.json
         message = data.get('message', '')
+        provider = data.get('provider', 'litellm')  # Default to LiteLLM
         
-        # Completion request using configured litellm server
-        response = completion(
-            model=LITELLM_MODEL,
-            messages=[{"role": "user", "content": message}],
-            api_base=LITELLM_API_BASE,
-            api_key=LITELLM_API_KEY
-        )
+        if provider == 'openrouter':
+            # Completion request using OpenRouter via OpenAI SDK
+            response = openrouter_client.chat.completions.create(
+                model=OPENROUTER_MODEL,
+                messages=[{"role": "user", "content": message}],
+            )
+            content = response.choices[0].message.content
+        else:
+            # Completion request using configured LiteLLM server
+            response = completion(
+                model=LITELLM_MODEL,
+                messages=[{"role": "user", "content": message}],
+                api_base=LITELLM_API_BASE,
+                api_key=LITELLM_API_KEY
+            )
+            content = response.choices[0].message.content
         
         return jsonify({
             'status': 'success',
-            'response': response.choices[0].message.content
+            'response': content
         })
     except Exception as e:
         return jsonify({
