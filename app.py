@@ -18,7 +18,7 @@ LITELLM_API_KEY = os.getenv('LITELLM_API_KEY', '')  # API key if required
 
 # OpenRouter configuration
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')  # API key for OpenRouter
-OPENROUTER_MODEL = os.getenv('OPENROUTER_MODEL', 'openrouter/auto')  # Default model
+OPENROUTER_DEFAULT_MODEL = os.getenv('OPENROUTER_MODEL', 'openrouter/auto')  # Default model
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -38,24 +38,14 @@ def chat():
     try:
         data = request.json
         message = data.get('message', '')
-        provider = data.get('provider', 'litellm')  # Default to LiteLLM
+        model = data.get('model', OPENROUTER_DEFAULT_MODEL)  # Default to OpenRouter default model
         
-        if provider == 'openrouter':
-            # Completion request using OpenRouter via OpenAI SDK
-            response = openrouter_client.chat.completions.create(
-                model=OPENROUTER_MODEL,
-                messages=[{"role": "user", "content": message}],
-            )
-            content = response.choices[0].message.content
-        else:
-            # Completion request using configured LiteLLM server
-            response = completion(
-                model=LITELLM_MODEL,
-                messages=[{"role": "user", "content": message}],
-                api_base=LITELLM_API_BASE,
-                api_key=LITELLM_API_KEY
-            )
-            content = response.choices[0].message.content
+        # Completion request using OpenRouter via OpenAI SDK for all queries
+        response = openrouter_client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": message}],
+        )
+        content = response.choices[0].message.content
         
         return jsonify({
             'status': 'success',
